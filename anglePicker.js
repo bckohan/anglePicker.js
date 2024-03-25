@@ -2,7 +2,6 @@ class AnglePicker {
 
     constructor(parent, options, rangeUpdateHandler) {
 
-        //this.units = options.hasOwnProperty('units') ? options['units'] : 'degrees';
         this.signedAngle = options.hasOwnProperty('signedAngle') ? options['signedAngle'] : false;
         this.extents = options.hasOwnProperty('extents') ? options['extents'] : [0, 360];
         this.extents = this.signedAngle || this.isSigned(this.extents) ? this.signedToAbsoluteArray(this.extents) : this.extents;
@@ -66,8 +65,11 @@ class AnglePicker {
             "stroke": "#d2d3d4",
             "stroke-width": "5"
         };
-
-        parent.html(
+        if (typeof parent === 'string') {
+            parent = document.querySelector(parent);
+        }
+        this.parent = parent;
+        this.parent.innerHTML = (
             `<svg ${idStr} width="${this.width}" height="${this.height}" viewBox="${this.viewBox.join(' ')}" style="transform: rotate(${this.rotation}deg);" class="angle-picker">`+
             `  <rect width="100%" height="100%" x="${this.viewBox[0]}" y="${this.viewBox[1]}" fill="none" stroke="black" stroke-width="1"/>` +
             (this.zeroGuide ? `  <line x1="${this.cx}" y1="${this.cy}" x2="${this.zeroPoint[0]}" y2="${this.zeroPoint[1]}" ${this.expandAttrs(this.zeroGuide)} />` : "") +
@@ -82,20 +84,20 @@ class AnglePicker {
             `  <text class="angle b" text-anchor="middle" dominant-baseline="central" ${this.hideAtExtents && this.atExtents(this.initial[0], this.initial[1]) ? 'visibility="hidden"': ''} ${this.expandAttrs(this.font)}></text>` +
             `</svg>`
         );
-        this.svg = parent.find('svg').get(0);
+        this.svg = parent.querySelector('svg');
         this.rangeUpdated = rangeUpdateHandler;
         this.reference = this.svg.createSVGPoint();  // Created once for document
 
-        this.handleA = $(this.svg).find('.slider-handle.a');
-        this.handleB = $(this.svg).find('.slider-handle.b');
+        this.handleA = this.svg.querySelector('.slider-handle.a');
+        this.handleB = this.svg.querySelector('.slider-handle.b');
 
-        this.textA = $(this.svg).find('.angle.a');
-        this.textB = $(this.svg).find('.angle.b');
+        this.textA = this.svg.querySelector('.angle.a');
+        this.textB = this.svg.querySelector('.angle.b');
 
-        this.handleAHighlight = $(this.svg).find('.slider-handle-highlight.a');
-        this.handleBHighlight = $(this.svg).find('.slider-handle-highlight.b');
+        this.handleAHighlight = this.svg.querySelector('.slider-handle-highlight.a');
+        this.handleBHighlight = this.svg.querySelector('.slider-handle-highlight.b');
 
-        this.angleRange = $(this.svg).find('.active-range');
+        this.angleRange = this.svg.querySelector('.active-range');
 
         this.aFocus = false;
         this.aTrack = false;
@@ -104,57 +106,59 @@ class AnglePicker {
 
         this.setRangeSpan();
 
-        this.handleA.hover(function() {
-            this.handleAHighlight.removeAttr('visibility');
-        }.bind(this), function() {
+        this.handleA.addEventListener('mouseenter', () => {
+            this.handleAHighlight.removeAttribute('visibility');
+        });
+        
+        this.handleA.addEventListener('mouseleave', () => {
             if (!this.aFocus) {
-                this.handleAHighlight.attr('visibility', 'hidden');
+                this.handleAHighlight.setAttribute('visibility', 'hidden');
             }
-        }.bind(this));
+        });
 
-        this.handleB.hover(
-            function() {
-                this.handleBHighlight.removeAttr('visibility');
-            }.bind(this),
-            function() {
-                if (!this.bFocus) {
-                    this.handleBHighlight.attr('visibility', 'hidden');
-                }
-            }.bind(this)
-        );
+        this.handleB.addEventListener('mouseenter', () => {
+            this.handleBHighlight.removeAttribute('visibility');
+        });
+        
+        this.handleB.addEventListener('mouseleave', () => {
+            if (!this.bFocus) {
+                this.handleBHighlight.setAttribute('visibility', 'hidden');
+            }
+        });
 
-        this.handleA.focus(
-            function() {
-                this.aFocus = true;
-                this.aTrack = true;
-                this.handleAHighlight.removeAttr('visibility');
-            }.bind(this)
-        );
-        this.handleA.mousedown(function() { if (this.aFocus) this.aTrack = true;}.bind(this));
-
-        this.handleB.focus(
-            function() {
-                this.bFocus = true;
-                this.bTrack = true;
-                this.handleBHighlight.removeAttr('visibility');
-            }.bind(this)
-        );
-        this.handleB.mousedown(function() { if (this.bFocus) this.bTrack = true; }.bind(this));
-
-        this.handleA.blur(function() {
+        this.handleA.addEventListener('focus', () => {
+            this.aFocus = true;
+            this.aTrack = true;
+            this.handleAHighlight.removeAttribute('visibility');
+        });
+        
+        this.handleA.addEventListener('mousedown', () => {
+            if (this.aFocus) this.aTrack = true;
+        });
+        
+        this.handleB.addEventListener('focus', () => {
+            this.bFocus = true;
+            this.bTrack = true;
+            this.handleBHighlight.removeAttribute('visibility');
+        });
+        
+        this.handleB.addEventListener('mousedown', () => {
+            if (this.bFocus) this.bTrack = true;
+        });
+        
+        this.handleA.addEventListener('blur', () => {
             this.aFocus = false;
             this.aTrack = false;
-            this.handleAHighlight.attr('visibility', 'hidden');
-        }.bind(this));
-
-        this.handleB.blur(function() {
+            this.handleAHighlight.setAttribute('visibility', 'hidden');
+        });
+        
+        this.handleB.addEventListener('blur', () => {
             this.bFocus = false;
             this.bTrack = false;
-            this.handleBHighlight.attr('visibility', 'hidden');
-        }.bind(this));
-
-        let body = $('body');
-        body.mouseup(function() {
+            this.handleBHighlight.setAttribute('visibility', 'hidden');
+        });
+        
+        document.body.addEventListener('mouseup', () => {
             if (this.aTrack || this.bTrack) {
                 this.aTrack = false;
                 this.bTrack = false;
@@ -162,9 +166,9 @@ class AnglePicker {
                     this.rangeUpdated(this.range, 'mouse');
                 }
             }
-        }.bind(this));
-
-        this.handleA.keydown(function( event ) {
+        });
+        
+        this.handleA.addEventListener('keydown', (event) => {
             if (this.aFocus) {
                 if ([37, 38, 39, 40].includes(event.which)) {
                     event.preventDefault();
@@ -176,7 +180,8 @@ class AnglePicker {
                         this.center
                     );
                     if (!this.allowed(aVNew, this.bV)) {
-                        return;
+                        if (this.aV === this.beginV || this.aV === this.endV) return;
+                        aVNew = this.clip(aVNew);
                     }
                     this.aV = aVNew;
                     this.setCenter([this.handleA, this.handleAHighlight], this.aV);
@@ -186,9 +191,9 @@ class AnglePicker {
                     }
                 }
             }
-        }.bind(this));
-
-        this.handleB.keydown(function( event ) {
+        });
+        
+        this.handleB.addEventListener('keydown', (event) => {
             if (this.bFocus) {
                 if ([37, 38, 39, 40].includes(event.which)) {
                     event.preventDefault();
@@ -200,7 +205,8 @@ class AnglePicker {
                         this.center
                     );
                     if (!this.allowed(this.aV, bVNew)) {
-                        return;
+                        if (this.bV === this.beginV || this.bV === this.endV) return;
+                        bVNew = this.clip(bVNew);
                     }
                     this.bV = bVNew;
                     this.setCenter([this.handleB, this.handleBHighlight], this.bV);
@@ -210,29 +216,32 @@ class AnglePicker {
                     }
                 }
             }
-        }.bind(this));
+        });
 
-        body.mousemove(function(event) {
+        document.body.addEventListener('mousemove', (event) => {
             if (this.aTrack || this.bTrack) {
                 if (this.aTrack) {
                     let aVNew = this.add(this.multiply(this.normalize(this.subtract(this.svgCoords(event), this.center)), this.radius), this.center);
                     if (!this.allowed(aVNew, this.bV)) {
-                        return;
+                        if (this.aV === this.beginV || this.aV === this.endV) return;
+                        aVNew = this.clip(aVNew);
                     }
                     this.aV = aVNew;
                     this.setCenter([this.handleA, this.handleAHighlight], this.aV);
-                }
-                else if (this.bTrack) {
+                } else if (this.bTrack) {
                     let bVNew = this.add(this.multiply(this.normalize(this.subtract(this.svgCoords(event), this.center)), this.radius), this.center);
                     if (!this.allowed(this.aV, bVNew)) {
-                        return;
+                        if (this.bV === this.beginV || this.bV === this.endV) return;
+                        bVNew = this.clip(bVNew);
                     }
+                    if (bVNew === this.bV) return;
                     this.bV = bVNew;
                     this.setCenter([this.handleB, this.handleBHighlight], this.bV);
                 }
                 this.setRangeSpan();
             }
-        }.bind(this));
+        });
+        
     }
 
     expandAttrs(attributes) {
@@ -259,13 +268,21 @@ class AnglePicker {
         return rho;
     }
 
+    clip(vector) {
+        // clip vector to closest extent
+        if (this.angle(vector, this.beginV) < this.angle(vector, this.endV)) {
+            return this.beginV;
+        }
+        return this.endV;
+    }
+
     setRangeSpan() {
 
         this.rho = this.computeRho(this.aV, this.bV);
 
         const pathAttrs = this.pathAttrs(this.rho, this.angleToX(this.bV));
-        this.angleRange.attr('stroke-dashoffset', pathAttrs["stroke-dashoffset"]);
-        this.angleRange.attr('stroke-dasharray', pathAttrs["stroke-dasharray"]);
+        this.angleRange.setAttribute('stroke-dashoffset', pathAttrs["stroke-dashoffset"]);
+        this.angleRange.setAttribute('stroke-dasharray', pathAttrs["stroke-dasharray"]);
 
         let aT = this.subtract(this.aV, this.center);
         let aTMag = this.magnitude(aT);
@@ -273,10 +290,10 @@ class AnglePicker {
         let angle1 = this.angleToX(this.aV)
         if (this.signedAngle) angle1 = this.absoluteToSigned(angle1);
         let angle1Str = angle1.toFixed(this.precision)
-        this.textA.attr('x', txtACenter[0]);
-        this.textA.attr('y', txtACenter[1]);
-        this.textA.attr('transform', `rotate(${-this.rotation}, ${txtACenter[0]}, ${txtACenter[1]})`);
-        this.textA.html(`${angle1Str}&deg`);
+        this.textA.setAttribute('x', txtACenter[0]);
+        this.textA.setAttribute('y', txtACenter[1]);
+        this.textA.setAttribute('transform', `rotate(${-this.rotation}, ${txtACenter[0]}, ${txtACenter[1]})`);
+        this.textA.textContent = (`${angle1Str}°`);
 
         let bT = this.subtract(this.bV, this.center);
         let bTMag = this.magnitude(bT);
@@ -284,28 +301,28 @@ class AnglePicker {
         let angle2 = this.angleToX(this.bV)
         if (this.signedAngle) angle2 = this.absoluteToSigned(angle2);
         let angle2Str = angle2.toFixed(this.precision)
-        this.textB.attr('x', txtBCenter[0]);
-        this.textB.attr('y', txtBCenter[1]);
-        this.textB.attr('transform', `rotate(${-this.rotation}, ${txtBCenter[0]}, ${txtBCenter[1]})`);
-        this.textB.html(`${angle2Str}&deg;`);
+        this.textB.setAttribute('x', txtBCenter[0]);
+        this.textB.setAttribute('y', txtBCenter[1]);
+        this.textB.setAttribute('transform', `rotate(${-this.rotation}, ${txtBCenter[0]}, ${txtBCenter[1]})`);
+        this.textB.textContent = (`${angle2Str}°`);
 
         if (this.atExtents(angle1, angle2)) {
             this.range = [];
             if (this.hideAtExtents) {
-                this.textB.attr('visibility', 'hidden');
-                this.textA.attr('visibility', 'hidden');
+                this.textB.setAttribute('visibility', 'hidden');
+                this.textA.setAttribute('visibility', 'hidden');
             }
         } else {
-            this.textB.removeAttr('visibility');
-            this.textA.removeAttr('visibility');
+            this.textB.removeAttribute('visibility');
+            this.textA.removeAttribute('visibility');
             this.range = [angle2, angle1];
         }
     }
 
     setCenter(elements, center) {
         elements.forEach(element => {
-            element.attr('cx', center[0]);
-            element.attr('cy', center[1]);
+            element.setAttribute('cx', center[0]);
+            element.setAttribute('cy', center[1]);
         });
     };
 
@@ -321,9 +338,7 @@ class AnglePicker {
     }
 
     allowed(a, b) {
-        // todo - use cross products
         if (this.hasExtents) {
-              // If beta is less than alpha, in terms of direction, it means beta has passed through 0
             const aDeg = this.angleToX(a);
             const bDeg = this.angleToX(b);
             return (
@@ -335,10 +350,6 @@ class AnglePicker {
     }
 
     isBetween(theta, alpha, beta) {
-        // Normalize angles to [0, 360) range
-        theta = ((theta % 360) + 360) % 360;
-        alpha = ((alpha % 360) + 360) % 360;
-        beta = ((beta % 360) + 360) % 360;
         // Adjust angles to make alpha as zero point
         beta = ((beta - alpha + 360) % 360);
         theta = ((theta - alpha + 360) % 360);
@@ -418,21 +429,6 @@ class AnglePicker {
 
     absoluteToSigned(angle) {
         return angle > 180 ? angle - 360 : angle;
-    }
-
-    absoluteToSignedArray(angles) {
-        return angles.map(angle => this.absoluteToSigned(angle));
-    }
-
-    // these don't 100% guarantee that the given angles are not absolute
-    // or signed - only if they are
-    isAbsolute(angles) {
-        for (let angle of angles) {
-            if (angle > 180) {
-                return true
-            }
-        }
-        return false;
     }
 
     isSigned(angles) {
