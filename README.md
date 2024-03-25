@@ -1,2 +1,4 @@
 # anglePicker.js
-A configurable svg-based widget to pick an angle or an angle range.
+
+A configurable pure-javascript svg-based widget to pick an angle or an angle range.
+

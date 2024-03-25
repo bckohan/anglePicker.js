@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+    <head>
+
+        <!-- Required meta tags -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, maximum-scale=1, user-scalable=no">
+        <meta name="author" content="Brian Kohan">
+
+        <link rel="shortcut icon" type="image/x-icon" href="{% static 'favicon.ico' %}"/>
+
+        <title>Pick Angles</title>
+
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" integrity="sha512-jnSuA4Ss2PkkikSOLtYs8BlYIeeIK1h99ty4YfvRPAlzr377vr3CXDb7sb7eEEBYjDtcYj+AjBH3FLv5uSJuXg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+        <style>
+            .picker-container {
+                width: 200px;
+            }
+            .row {
+                margin-bottom: 30px;
+            }
+        </style>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>    
+        <script src="./anglePicker.js"></script>
+    </head>
+    <body>
+
+        <div class="container">
+            <div class="row">
+                <div class="col">
+                    <div id="select-latitude-range" class='picker-container'>
+                    </div>
+                    <script>
+                        const latitudeRangePicker = new AnglePicker(
+                            $('#select-latitude-range'),
+                            {
+                                'id': 'latitude-picker',
+                                'extents': [-90, 90],
+                                'signedAngle': true
+                            }
+                        );
+                    </script>
+                </div>
+                <div class="col">
+                    <div id="select-longitude-range" class='picker-container'>
+                    </div>
+                    <script>
+                        const longitudeRangePicker = new AnglePicker(
+                            $('#select-longitude-range'),
+                            {
+                                'id': 'longitude-picker',
+                                'signedAngle': false,
+                                'allowableRange': false,
+                                'increment': 0.1,
+                                'precision': 1
+                            }
+                        );
+                    </script>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <div id="select-link-orientation" class='picker-container'>
+                    </div>
+                    <script>
+                        const linkOrientationPicker = new AnglePicker(
+                            $('#select-link-orientation'),
+                            {
+                                'signedAngle': true
+                            }
+                        );
+                    </script>
+                </div>
+                <div class="col">
+                    <div id="select-angle-to-velocity" class='picker-container'>
+                    </div>
+                    <script>
+                        const angleToVelPicker = new AnglePicker(
+                            $('#select-angle-to-velocity'),
+                            {
+                                'id': 'angle-to-velocity-picker',
+                                'extents': [0, 180]
+                            }
+                        );
+                    </script>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <div id="select-restricted-range" class='picker-container'>
+                    </div>
+                    <script>
+                        const restrictedRangeEx = new AnglePicker(
+                            $('#select-restricted-range'),
+                            {
+                                'extents': [55, 125],
+                                'initial': [75, 105]
+                            }
+                        );
+                    </script>
+                </div>
+                <div class="col">
+                    <div id="select-angle-to-velocity-inv" class='picker-container'>
+                    </div>
+                    <script>
+                        const angleToVelPickerInv = new AnglePicker(
+                            $('#select-angle-to-velocity-inv'),
+                            {
+                                'id': 'angle-to-velocity-picker-inv',
+                                'extents': [180, 0]
+                            }
+                        );
+                    </script>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
