@@ -16,6 +16,7 @@
         <style>
             .picker-container {
                 width: 200px;
+                border: 1px solid black;
             }
             .row {
                 margin-bottom: 30px;
@@ -28,27 +29,72 @@
         <div class="container">
             <div class="row">
                 <div class="col">
-                    <div id="select-latitude-range" class='picker-container'>
-                    </div>
+                    <form>
+                        <div id="select-latitude-range" class='picker-container'>
+                            <input type="number" id="latitude-a" value="-90" min="-90" max="90" style="display: none;">
+                            <input type="number" id="latitude-b" value="90" min="-90" max="90" style="display: none;">
+                        </div>
+                    </form>
                     <script>
                         const latitudeRangePicker = new AnglePicker(
                             '#select-latitude-range',
                             {
-                                'id': 'latitude-picker',
-                                'extents': [-90, 90],
-                                'signedAngle': true
+                                id: 'latitude-picker',
+                                viewBox: [0, 0, 200, 230],
+                                extents: [-90, 90],
+                                signedAngle: true,
+                                guides: {
+                                    '-90': [null, ['S', {delta: [-30, 0]}]],
+                                    '90': [null, ['N', {delta: [-30, 0]}]],
+                                    '0': [{}, null]
+                                }
+                            },
+                            (r, mode) => {console.log(`rangeUpdate(${r[0]}, ${r[1]}, mode=${mode})`);},
+                            '#latitude-a',
+                            '#latitude-b'
+                        );
+                        /* input and change events are triggered on the input elements */
+                        latitudeRangePicker.inputA.addEventListener('input', (event) => {
+                            console.log('a[input]:', event.target.value);
+                        });
+                        latitudeRangePicker.inputB.addEventListener('input', (event) => {
+                            console.log('b[input]:', event.target.value);
+                        });
+                        latitudeRangePicker.inputA.addEventListener('change', (event) => {
+                            console.log('a[change]:', event.target.value);
+                        });
+                        latitudeRangePicker.inputB.addEventListener('change', (event) => {
+                            console.log('b[change]:', event.target.value);
+                        });
+                    </script>
+                </div>
+                <div class="col">
+                    <div class='picker-container'>
+                    </div>
+                    <script>
+                        new AnglePicker(
+                            document.currentScript.previousElementSibling,
+                            {
+                                viewBox: [0, 0, 200, 230],
+                                radius: 50,
+                                signedAngle: true,
+                                guides: {
+                                    '-90': [null, ['W', {delta: [0, 20]}]],
+                                    '90': [null, ['E', {delta: [0, -20]}]],
+                                    '0': [{}, null]
+                                }
                             }
                         );
                     </script>
                 </div>
+            </div>
+            <div class="row">
                 <div class="col">
-                    <div id="select-longitude-range" class='picker-container'>
-                    </div>
+                    <div class='picker-container'></div>
                     <script>
                         const longitudeRangePicker = new AnglePicker(
-                            '#select-longitude-range',
+                            document.currentScript.previousElementSibling,
                             {
-                                'id': 'longitude-picker',
                                 'signedAngle': false,
                                 'allowableRange': false,
                                 'increment': 0.1,
@@ -57,28 +103,13 @@
                         );
                     </script>
                 </div>
-            </div>
-            <div class="row">
                 <div class="col">
-                    <div id="select-link-orientation" class='picker-container'>
+                    <div class='picker-container'>
                     </div>
                     <script>
-                        const linkOrientationPicker = new AnglePicker(
-                            '#select-link-orientation',
+                        new AnglePicker(
+                            document.currentScript.previousElementSibling,
                             {
-                                'signedAngle': true
-                            }
-                        );
-                    </script>
-                </div>
-                <div class="col">
-                    <div id="select-angle-to-velocity" class='picker-container'>
-                    </div>
-                    <script>
-                        const angleToVelPicker = new AnglePicker(
-                            '#select-angle-to-velocity',
-                            {
-                                'id': 'angle-to-velocity-picker',
                                 'extents': [0, 180]
                             }
                         );
@@ -87,27 +118,67 @@
             </div>
             <div class="row">
                 <div class="col">
-                    <div id="select-restricted-range" class='picker-container'>
+                    <div class='picker-container'>
                     </div>
                     <script>
-                        const restrictedRangeEx = new AnglePicker(
-                            '#select-restricted-range',
+                        new AnglePicker(
+                            document.currentScript.previousElementSibling,
                             {
                                 'extents': [55, 125],
-                                'initial': [75, 105]
+                                'initial': [75, 105],
+                                'guides': false,
+                                'centerPoint': {'fill': 'transparent'},
+                                'handleA': {fill: "green"}
                             }
                         );
                     </script>
                 </div>
                 <div class="col">
-                    <div id="select-angle-to-velocity-inv" class='picker-container'>
+                    <div class='picker-container'>
                     </div>
                     <script>
-                        const angleToVelPickerInv = new AnglePicker(
-                            '#select-angle-to-velocity-inv',
+                        new AnglePicker(
+                            document.currentScript.previousElementSibling,
                             {
-                                'id': 'angle-to-velocity-picker-inv',
-                                'extents': [180, 0]
+                                'extents': [180, 0],
+                                'handleA': {fill: "green"}
+                            }
+                        );
+                    </script>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <div class='picker-container'>
+                    </div>
+                    <script>
+                        new AnglePicker(
+                            document.currentScript.previousElementSibling,
+                            {
+                                'extents': [55, 125],
+                                'hideAtExtents': false,
+                                'guides': [90],
+                                'rotate': 30,
+                                'handleA': {fill: "red"},
+                                'handleHighlightA': {fill: "red"}
+                            }
+                        );
+                    </script>
+                </div>
+                <div class="col">
+                    <div class='picker-container'>
+                    </div>
+                    <script>
+                        new AnglePicker(
+                            document.currentScript.previousElementSibling,
+                            {
+                                'extents': [180, 0],
+                                'rotate': -90,
+                                'handleA': {fill: "red"},
+                                'handleHighlightA': {fill: "red"},
+                                'angleLines': true,
+                                'guides': false,
+                                'angleLineA': {stroke: 'red'}
                             }
                         );
                     </script>

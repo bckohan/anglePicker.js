@@ -1,34 +1,51 @@
 class AnglePicker {
 
-    constructor(parent, options, rangeUpdateHandler) {
+    static DEFAULT_GUIDE = {stroke: "black", "stroke-dasharray": 2, "stroke-opacity": 0.5};
+    static DEFAULT_FONT = {"font-size": "1em"};
+    static DEFAULT_CENTER = {r: 2, fill: "#000000"};
+    static DEFAULT_MARKER = {};
+    static DEFAULT_VIEWBOX = [0, 0, 200, 200];
+    static DEFAULT_HANDLE = {r: 5, fill: "#2d3e4f", "stroke-width": 1};
+    static DEFAULT_HANDLE_HIGHLIGHT = {r: 7, fill: "transparent", stroke: "#2c3e50", "stroke-width": 2, "stroke-opacity": 0.35};
+    static DEFAULT_ACTIVE_RANGE = {stroke: "#556676", "stroke-width": "5"};
+    static DEFAULT_ALLOWABLE_RANGE = {stroke: "#d2d3d4", "stroke-width": "5"};
+    static DEFAULT_ANGLE_LINES = {stroke: 'black', 'stroke-opacity': 0.5};
 
-        this.signedAngle = options.hasOwnProperty('signedAngle') ? options['signedAngle'] : false;
-        this.extents = options.hasOwnProperty('extents') ? options['extents'] : [0, 360];
+    constructor(parent, options, rangeUpdateHandler=null, inputA=null, inputB=null) {
+
+        this.signedAngle = options.signedAngle || false;
+        this.extents = options.extents || [0, 360];
         this.extents = this.signedAngle || this.isSigned(this.extents) ? this.signedToAbsoluteArray(this.extents) : this.extents;
-        this.initial = options.hasOwnProperty('initial') ? options['initial'] : this.extents;
+        this.initial = options.initial || this.extents;
         this.initial = this.signedAngle || this.isSigned(this.initial) ? this.signedToAbsoluteArray(this.initial) : this.initial;
+        this.lastRange = this.range = this.initial;
         this.hasExtents = (this.extents[0] > 0 || this.extents[1] < 360);
-        this.hideAtExtents = options.hasOwnProperty('hideAtExtents') ? options['hideAtExtents'] : true;
-        this.increment = options.hasOwnProperty('increment') ? options['increment'] : 1;
-        this.precision = options.hasOwnProperty('precision') ? options['precision'] : 0;
-        this.radius = options.hasOwnProperty('radius') ? options['radius'] : 50;
+        this.hideAtExtents = options.hasOwnProperty('hideAtExtents') ? options.hideAtExtents : true;
+        this.increment = options.increment || 1;
+        this.precision = options.precision || 0;
+        this.radius = options.radius || 50;
         this.circumference = Math.PI * 2 * this.radius;
-        this.rotation = options.hasOwnProperty('rotate') ? options['rotate'] : 0;
-        this.width = options.hasOwnProperty('width') ? options['width'] : '100%';
-        this.height = options.hasOwnProperty('height') ? options['height'] : '100%';
-        this.viewBox = options.hasOwnProperty('viewBox') ? options['viewBox'] : [0, 0, 200, 200];
+        this.rotation = options.rotate || 0;
+        this.width = options.width || '100%';
+        this.height = options.height || '100%';
+        this.viewBox = options.viewBox || AnglePicker.DEFAULT_VIEWBOX;
         this.cx = this.viewBox[0] + this.viewBox[2]/2;
         this.cy = this.viewBox[1] + this.viewBox[3]/2;
         this.center = [this.cx, this.cy];
         this.id = options.hasOwnProperty("id") ? options["id"] : null;
         const idStr = this.id ? `id="${this.id}"` : "";
-        this.zeroGuide = options.hasOwnProperty("zeroGuide") ? options["zeroGuide"] : {"stroke": "black", "stroke-dasharray": 2, "stroke-opacity": 0.5};
-        this.centerPoint = options.hasOwnProperty("centerPoint") ? options["centerPoint"] : {"r": 2, "fill": "#000000"};
-        this.zeroPoint = this.add(this.center, [this.radius, 0]);
-        this.font = {"font-size": "1em"};
-        if (options.hasOwnProperty("font")) {
-            this.font = {...this.font, ...options["font"]};
+        this.guides = options.hasOwnProperty('guides') ? options['guides'] : {0: [AnglePicker.DEFAULT_GUIDE, null]};
+        if (Array.isArray(this.guides)) {
+            // guides may also be an array of angles
+            let guides = {};
+            for (const angle of this.guides) {
+                guides[angle] = [AnglePicker.DEFAULT_GUIDE, null];
+            }
+            this.guides = guides;
         }
+        this.centerPoint = {...AnglePicker.DEFAULT_CENTER, ...options.centerPoint || {}};
+        this.zeroPoint = this.add(this.center, [this.radius, 0]);
+        this.font = {...AnglePicker.DEFAULT_FONT, ...options.font || {}};
         this.textSpacing = options.hasOwnProperty('textSpacing') ? options['textSpacing'] : .5 + (0.15*this.precision);
 
         this.beginV = this.vectorFromAngle(this.extents[0]);
@@ -38,54 +55,74 @@ class AnglePicker {
         this.bV = [this.bV[0], Math.abs((this.bV[1] - this.aV[1])) < 0.00001 ? this.aV[1] : this.bV[1]];
         this.rho = this.computeRho(this.aV, this.bV);
 
-        this.handle = {
-            "r": 5,
-            "fill": "#2D3E4F",
-            "stroke-width": 1
-        };
-        if (options.hasOwnProperty("handle")) {
-            this.handle = {...this.handle, ...options["handle"]};
-        }
-        this.handleHighlight = {
-            "r": 7,
-            "fill": "transparent",
-            "stroke": "#2c3e50",
-            "stroke-width": 2,
-            "stroke-opacity": 0.35
-        };
-        if (options.hasOwnProperty("handleHighlight")) {
-            this.handleHighlight = {...this.handleHighlight, ...options["handleHighlight"]};
+        this.handle = {...AnglePicker.DEFAULT_HANDLE, ...options.handle || {}};
+        this.handleHighlight = {...AnglePicker.DEFAULT_HANDLE_HIGHLIGHT, ...options.handleHighlight || {}};
+        this.angleLines = false;
+        if (options.hasOwnProperty('angleLines') && options.angleLines) {
+            this.angleLines = {...AnglePicker.DEFAULT_ANGLE_LINES, ...typeof options.angleLines === 'object' ? options.angleLines : {}};
         }
 
-        this.activeRange = options.hasOwnProperty("activeRange") ? options["activeRange"] : {
-            "stroke": "#556676",
-            "stroke-width": "5"
-        };
-        this.allowableRange = options.hasOwnProperty("allowableRange") ? options["allowableRange"] : {
-            "stroke": "#d2d3d4",
-            "stroke-width": "5"
-        };
+        this.activeRange = {...AnglePicker.DEFAULT_ACTIVE_RANGE, ...options.activeRange || {}};
+        if (options.allowableRange == false) {
+            this.allowableRange = false;
+        } else {
+            this.allowableRange = {...AnglePicker.DEFAULT_ALLOWABLE_RANGE, ...options.allowableRange || {}};
+        }
         if (typeof parent === 'string') {
             parent = document.querySelector(parent);
         }
+        if (typeof inputA === 'string') {
+            inputA = document.querySelector(inputA);
+        }
+        if (typeof inputB === 'string') {
+            inputB = document.querySelector(inputB);
+        }
+        this.inputA = inputA;
+        this.inputB = inputB;
         this.parent = parent;
-        this.parent.innerHTML = (
-            `<svg ${idStr} width="${this.width}" height="${this.height}" viewBox="${this.viewBox.join(' ')}" style="transform: rotate(${this.rotation}deg);" class="angle-picker">`+
-            `  <rect width="100%" height="100%" x="${this.viewBox[0]}" y="${this.viewBox[1]}" fill="none" stroke="black" stroke-width="1"/>` +
-            (this.zeroGuide ? `  <line x1="${this.cx}" y1="${this.cy}" x2="${this.zeroPoint[0]}" y2="${this.zeroPoint[1]}" ${this.expandAttrs(this.zeroGuide)} />` : "") +
-            (this.centerPoint ? `  <circle class="center" cx="${this.cx}" cy="${this.cy}" ${this.expandAttrs(this.centerPoint)}></circle>` : "" ) +
-            (this.allowableRange ? `  <circle class="allowable-range" cx="${this.cx}" cy="${this.cy}" r="${this.radius}" fill="transparent"${this.expandAttrs(this.allowableRange)} ${this.expandAttrs(this.pathAttrs(this.hasExtents ? this.computeRho(this.beginV, this.endV) : 360, this.angleToX(this.endV)))}></circle>` : "") +
-            `  <circle class="active-range" cx="${this.cx}" cy="${this.cy}" r="${this.radius}" fill="transparent" ${this.expandAttrs(this.activeRange)}></circle>` +
-            `  <circle class="slider-handle-highlight a" cx="${this.aV[0]}" cy="${this.aV[1]}" visibility="hidden" ${this.expandAttrs(this.handleHighlight)}></circle>` +
-            `  <circle class="slider-handle a" tabIndex="0" focusable="true" style="outline: none;" cx="${this.aV[0]}" cy="${this.aV[1]}" fill="red" ${this.expandAttrs(this.handle)}></circle>` +
-            `  <text class="angle a" text-anchor="middle" dominant-baseline="central" ${this.hideAtExtents && this.atExtents(this.initial[0], this.initial[1]) ? 'visibility="hidden"': ''} ${this.expandAttrs(this.font)}></text>` +
-            `  <circle class="slider-handle-highlight b" cx="${this.bV[0]}" cy="${this.bV[1]}" r="7" visibility="hidden" ${this.expandAttrs(this.handleHighlight)}></circle>` +
-            `  <circle class="slider-handle b" tabIndex="0" focusable="true" style="outline: none;" cx="${this.bV[0]}" cy="${this.bV[1]}" ${this.expandAttrs(this.handle)}></circle>` +
-            `  <text class="angle b" text-anchor="middle" dominant-baseline="central" ${this.hideAtExtents && this.atExtents(this.initial[0], this.initial[1]) ? 'visibility="hidden"': ''} ${this.expandAttrs(this.font)}></text>` +
-            `</svg>`
-        );
+        if (!this.parent.querySelector('svg')) {
+            
+            let guideLines = '';
+            Object.entries(this.guides).forEach(([angle, [guide, marker]]) => {
+                if (typeof angle === 'string') {
+                    angle = parseFloat(angle);
+                }
+                const vector = this.vectorFromAngle(angle);
+                if (guide) {
+                    guide = {...AnglePicker.DEFAULT_GUIDE, ...guide};
+                    guideLines += `  <line class="guide-line" x1="${this.cx}" y1="${this.cy}" x2="${vector[0]}" y2="${vector[1]}" ${this.expandAttrs(guide)} />\n`;
+                }
+                if (marker) {
+                    let [text, attrs] = marker;
+                    let delta = [0, 0];
+                    if (attrs && attrs.hasOwnProperty('delta')) {
+                        delta = attrs.delta;
+                        delete attrs.delta;
+                    }
+                    attrs = {...AnglePicker.DEFAULT_MARKER, ...AnglePicker.DEFAULT_FONT, ...attrs};
+                    guideLines += `  <text class="guide-marker" text-anchor="middle" dominant-baseline="central" ${this.expandAttrs(this.textPos(vector, this.textSpacing, delta))} ${this.expandAttrs(marker)}>${text}</text>\n`;
+                }
+            });
+
+            this.parent.innerHTML = (
+                `<svg ${idStr} width="${this.width}" height="${this.height}" viewBox="${this.viewBox.join(' ')}" style="transform: rotate(${this.rotation}deg);" class="angle-picker">`+
+                `${guideLines}` +
+                (this.centerPoint ? `  <circle class="center" cx="${this.cx}" cy="${this.cy}" ${this.expandAttrs(this.centerPoint)}></circle>` : "" ) +
+                (this.allowableRange ? `  <circle class="allowable-range" cx="${this.cx}" cy="${this.cy}" r="${this.radius}" fill="transparent"${this.expandAttrs(this.allowableRange)} ${this.expandAttrs(this.pathAttrs(this.hasExtents ? this.computeRho(this.beginV, this.endV) : 360, this.angleToX(this.endV)))}></circle>` : "") +
+                (this.angleLines ? `  <line class="angle-line a" x1="${this.cx}" y1="${this.cy}" x2="${this.aV[0]}" y2="${this.aV[1]}" ${this.expandAttrs({...this.angleLines, ...options.angleLineA || {}})}/>` : "") +
+                (this.angleLines ? `  <line class="angle-line b" x1="${this.cx}" y1="${this.cy}" x2="${this.bV[0]}" y2="${this.bV[1]}" ${this.expandAttrs({...this.angleLines, ...options.angleLineB || {}})}/>` : "") +
+                `  <circle class="active-range" cx="${this.cx}" cy="${this.cy}" r="${this.radius}" fill="transparent" ${this.expandAttrs(this.activeRange)}></circle>` +
+                `  <circle class="slider-handle-highlight a" cx="${this.aV[0]}" cy="${this.aV[1]}" visibility="hidden" ${this.expandAttrs({...this.handleHighlight, ...options.handleHighlightA || {}})}></circle>` +
+                `  <circle class="slider-handle a" tabIndex="0" focusable="true" style="outline: none;" cx="${this.aV[0]}" cy="${this.aV[1]}" ${this.expandAttrs({...this.handle, ...options.handleA || {}})}></circle>` +
+                `  <text class="angle a" text-anchor="middle" dominant-baseline="central" ${this.hideAtExtents && this.atExtents(this.initial[0], this.initial[1]) ? 'visibility="hidden"': ''} ${this.expandAttrs(this.font)}></text>` +
+                `  <circle class="slider-handle-highlight b" cx="${this.bV[0]}" cy="${this.bV[1]}" r="7" visibility="hidden" ${this.expandAttrs({...this.handleHighlight, ...options.handleHighlightB || {}})}></circle>` +
+                `  <circle class="slider-handle b" tabIndex="0" focusable="true" style="outline: none;" cx="${this.bV[0]}" cy="${this.bV[1]}" ${this.expandAttrs({...this.handle, ...options.handleB || {}})}></circle>` +                
+                `  <text class="angle b" text-anchor="middle" dominant-baseline="central" ${this.hideAtExtents && this.atExtents(this.initial[0], this.initial[1]) ? 'visibility="hidden"': ''} ${this.expandAttrs(this.font)}></text>` +
+                `</svg>`
+            );
+        }
         this.svg = parent.querySelector('svg');
-        this.rangeUpdated = rangeUpdateHandler;
+        this.rangeUpdateHandler = rangeUpdateHandler;
         this.reference = this.svg.createSVGPoint();  // Created once for document
 
         this.handleA = this.svg.querySelector('.slider-handle.a');
@@ -93,6 +130,9 @@ class AnglePicker {
 
         this.textA = this.svg.querySelector('.angle.a');
         this.textB = this.svg.querySelector('.angle.b');
+
+        this.lineA = this.angleLines ? this.svg.querySelector('.angle-line.a') : null;
+        this.lineB = this.angleLines ? this.svg.querySelector('.angle-line.b') : null;
 
         this.handleAHighlight = this.svg.querySelector('.slider-handle-highlight.a');
         this.handleBHighlight = this.svg.querySelector('.slider-handle-highlight.b');
@@ -162,9 +202,7 @@ class AnglePicker {
             if (this.aTrack || this.bTrack) {
                 this.aTrack = false;
                 this.bTrack = false;
-                if (this.rangeUpdated) {
-                    this.rangeUpdated(this.range, 'mouse');
-                }
+                this.rangeUpdated(this.range, 'mouse');
             }
         });
         
@@ -186,9 +224,7 @@ class AnglePicker {
                     this.aV = aVNew;
                     this.setCenter([this.handleA, this.handleAHighlight], this.aV);
                     this.setRangeSpan();
-                    if (this.rangeUpdated) {
-                        this.rangeUpdated(this.range, 'key');
-                    }
+                    this.rangeUpdated(this.range, 'key');
                 }
             }
         });
@@ -211,9 +247,7 @@ class AnglePicker {
                     this.bV = bVNew;
                     this.setCenter([this.handleB, this.handleBHighlight], this.bV);
                     this.setRangeSpan();
-                    if (this.rangeUpdated) {
-                        this.rangeUpdated(this.range, 'key');
-                    }
+                    this.rangeUpdated(this.range, 'key');
                 }
             }
         });
@@ -242,6 +276,22 @@ class AnglePicker {
             }
         });
         
+    }
+
+    rangeUpdated(newRange, mode) {
+        this.range = newRange;
+        if (this.inputA && this.lastRange[0] != this.range[0]) {
+            this.inputA.value = this.range[0];
+            this.inputA.dispatchEvent(new Event('change', {'bubbles': true, 'cancelable': true}));
+        }
+        if (this.inputB && this.lastRange[1] != this.range[1]) {
+            this.inputB.value = this.range[1];
+            this.inputB.dispatchEvent(new Event('change', {'bubbles': true, 'cancelable': true}));
+        }
+        if (this.rangeUpdateHandler) {
+            this.rangeUpdateHandler(newRange, mode);
+        }
+        this.lastRange = this.range;
     }
 
     expandAttrs(attributes) {
@@ -276,6 +326,17 @@ class AnglePicker {
         return this.endV;
     }
 
+    textPos(vector, spacing=0, delta=[0, 0]) {
+        let aT = this.subtract(vector, this.center);
+        let aTMag = this.magnitude(aT);
+        let pos = this.add(this.add(this.multiply(this.normalize(aT), aTMag+spacing*aTMag), this.center), delta);
+        return {
+            x: pos[0],
+            y: pos[1],
+            transform: `rotate(${-this.rotation}, ${pos[0]}, ${pos[1]})`
+        };
+    }
+
     setRangeSpan() {
 
         this.rho = this.computeRho(this.aV, this.bV);
@@ -284,29 +345,36 @@ class AnglePicker {
         this.angleRange.setAttribute('stroke-dashoffset', pathAttrs["stroke-dashoffset"]);
         this.angleRange.setAttribute('stroke-dasharray', pathAttrs["stroke-dasharray"]);
 
-        let aT = this.subtract(this.aV, this.center);
-        let aTMag = this.magnitude(aT);
-        let txtACenter = this.add(this.multiply(this.normalize(aT), aTMag-this.textSpacing*aTMag), this.center);
         let angle1 = this.angleToX(this.aV)
         if (this.signedAngle) angle1 = this.absoluteToSigned(angle1);
-        let angle1Str = angle1.toFixed(this.precision)
-        this.textA.setAttribute('x', txtACenter[0]);
-        this.textA.setAttribute('y', txtACenter[1]);
-        this.textA.setAttribute('transform', `rotate(${-this.rotation}, ${txtACenter[0]}, ${txtACenter[1]})`);
+        let angle1Str = angle1.toFixed(this.precision);
+        Object.entries(this.textPos(this.aV, -this.textSpacing)).forEach(([attr, value]) => {this.textA.setAttribute(attr, value);});
         this.textA.textContent = (`${angle1Str}°`);
+        if (this.lineA) {
+            this.lineA.setAttribute('x2', this.aV[0]);
+            this.lineA.setAttribute('y2', this.aV[1]);
+        }
 
-        let bT = this.subtract(this.bV, this.center);
-        let bTMag = this.magnitude(bT);
-        let txtBCenter = this.add(this.multiply(this.normalize(bT), bTMag + this.textSpacing*bTMag), this.center);
         let angle2 = this.angleToX(this.bV)
         if (this.signedAngle) angle2 = this.absoluteToSigned(angle2);
-        let angle2Str = angle2.toFixed(this.precision)
-        this.textB.setAttribute('x', txtBCenter[0]);
-        this.textB.setAttribute('y', txtBCenter[1]);
-        this.textB.setAttribute('transform', `rotate(${-this.rotation}, ${txtBCenter[0]}, ${txtBCenter[1]})`);
+        let angle2Str = angle2.toFixed(this.precision);
+        Object.entries(this.textPos(this.bV, this.textSpacing)).forEach(([attr, value]) => {this.textB.setAttribute(attr, value);});
         this.textB.textContent = (`${angle2Str}°`);
+        if (this.lineB) {
+            this.lineB.setAttribute('x2', this.bV[0]);
+            this.lineB.setAttribute('y2', this.bV[1]);
+        }
 
-        if (this.atExtents(angle1, angle2)) {
+        if (this.inputA && this.range[0] != angle1) {
+            this.inputA.value = angle1;
+            this.inputA.dispatchEvent(new Event('input', {'bubbles': true, 'cancelable': true}));
+        }
+        if (this.inputB && this.range[1] != angle2) {
+            this.inputB.value = angle2;
+            this.inputB.dispatchEvent(new Event('input', {'bubbles': true, 'cancelable': true}));
+        }
+
+        if (this.atExtents(this.signedToAbsolute(angle1), this.signedToAbsolute(angle2))) {
             this.range = [];
             if (this.hideAtExtents) {
                 this.textB.setAttribute('visibility', 'hidden');
@@ -315,7 +383,7 @@ class AnglePicker {
         } else {
             this.textB.removeAttribute('visibility');
             this.textA.removeAttribute('visibility');
-            this.range = [angle2, angle1];
+            this.range = [angle1, angle2];
         }
     }
 
@@ -334,7 +402,7 @@ class AnglePicker {
     }
 
     setRangeUpdateHandler(handler) {
-        this.rangeUpdated = handler;
+        this.rangeUpdateHandler = handler;
     }
 
     allowed(a, b) {
