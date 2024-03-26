@@ -50,6 +50,7 @@
                                 }
                             },
                             (r, mode) => {console.log(`rangeUpdate(${r[0]}, ${r[1]}, mode=${mode})`);},
+                            (angle1, angle2) => {console.log(`rangeMoved(${angle1}, ${angle2}`);},
                             '#latitude-a',
                             '#latitude-b'
                         );

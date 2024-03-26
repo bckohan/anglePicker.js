@@ -11,7 +11,7 @@ class AnglePicker {
     static DEFAULT_ALLOWABLE_RANGE = {stroke: "#d2d3d4", "stroke-width": "5"};
     static DEFAULT_ANGLE_LINES = {stroke: 'black', 'stroke-opacity': 0.5};
 
-    constructor(parent, options, rangeUpdateHandler=null, inputA=null, inputB=null) {
+    constructor(parent, options, rangeUpdateHandler=null, rangeMovedHandler=null, inputA=null, inputB=null) {
 
         this.signedAngle = options.signedAngle || false;
         this.extents = options.extents || [0, 360];
@@ -123,6 +123,7 @@ class AnglePicker {
         }
         this.svg = parent.querySelector('svg');
         this.rangeUpdateHandler = rangeUpdateHandler;
+        this.rangeMovedHandler = rangeMovedHandler;
         this.reference = this.svg.createSVGPoint();  // Created once for document
 
         this.handleA = this.svg.querySelector('.slider-handle.a');
@@ -368,10 +369,16 @@ class AnglePicker {
         if (this.inputA && this.range[0] != angle1) {
             this.inputA.value = angle1;
             this.inputA.dispatchEvent(new Event('input', {'bubbles': true, 'cancelable': true}));
+            if (this.rangeMovedHandler) {
+                this.rangeMovedHandler(angle1, angle2);
+            }
         }
         if (this.inputB && this.range[1] != angle2) {
             this.inputB.value = angle2;
             this.inputB.dispatchEvent(new Event('input', {'bubbles': true, 'cancelable': true}));
+            if (this.rangeMovedHandler) {
+                this.rangeMovedHandler(angle1, angle2);
+            }
         }
 
         if (this.atExtents(this.signedToAbsolute(angle1), this.signedToAbsolute(angle2))) {
