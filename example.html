@@ -185,6 +185,69 @@
                     </script>
                 </div>
             </div>
+            <div class="row">
+                <div class="col">
+                    <h4>Latitude</h4>
+                    <form>
+                        <div class='picker-container'></div>
+                        <label for='latitude-a'>Latitude A</label>
+                        <input type="number" class="latitude-a" value="-90" min="-90" max="90"/>
+                        <label for='latitude-b'>Latitude B</label>
+                        <input type="number" class="latitude-b" value="90" min="-90" max="90"/>
+                    </form>
+                    <script>
+                        const latContainer = document.currentScript.previousElementSibling;
+                        new AnglePicker(
+                            latContainer.querySelector('.picker-container'),
+                            {
+                                id: 'latitude-picker',
+                                viewBox: [0, 0, 200, 230],
+                                extents: [-90, 90],
+                                signedAngle: true,
+                                guides: {
+                                    '-90': [null, ['S', {delta: [-30, 0]}]],
+                                    '90': [null, ['N', {delta: [-30, 0]}]],
+                                    '0': [{}, null]
+                                }
+                            },
+                            (r, mode) => {console.log(`rangeUpdate(${r[0]}, ${r[1]}, mode=${mode})`);},
+                            (angle1, angle2) => {console.log(`rangeMoved(${angle1}, ${angle2}`);},
+                            latContainer.querySelector('input.latitude-a'),
+                            latContainer.querySelector('input.latitude-b')
+                        );
+                    </script>
+                </div>
+                <div class="col">
+                    <h4>Longitude</h4>
+                    <form>
+                        <div class='picker-container'></div>
+                        <label for='longitude-a'>Longitude A</label>
+                        <input type="number" class="longitude-a" value="0" min="-180" max="180"/>
+                        <label for='longitude-b'>Longitude B</label>
+                        <input type="number" class="longitude-b" value="-0" min="-180" max="180"/>
+                    </form>
+                    <script>
+                        const longContainer = document.currentScript.previousElementSibling;
+                        new AnglePicker(
+                            longContainer.querySelector('.picker-container'),
+                            {
+                                viewBox: [0, 0, 200, 230],
+                                radius: 50,
+                                signedAngle: true,
+                                guides: {
+                                    '-90': [null, ['W', {delta: [0, 20]}]],
+                                    '90': [null, ['E', {delta: [0, -20]}]],
+                                    '0': [{}, null]
+                                }
+                            },
+                            (r, mode) => {console.log(`rangeUpdate(${r[0]}, ${r[1]}, mode=${mode})`);},
+                            (angle1, angle2) => {console.log(`rangeMoved(${angle1}, ${angle2}`);},
+                            longContainer.querySelector('input.longitude-a'),
+                            longContainer.querySelector('input.longitude-b')
+                        );
+                    </script>
+                </div>
+            </div>
         </div>
     </body>
 </html>

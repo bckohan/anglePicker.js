@@ -13,6 +13,7 @@ class AnglePicker {
 
     constructor(parent, options, rangeUpdateHandler=null, rangeMovedHandler=null, inputA=null, inputB=null) {
 
+        this.eventDispatched = false;
         this.signedAngle = options.signedAngle || false;
         this.extents = options.extents || [0, 360];
         this.extents = this.signedAngle || this.isSigned(this.extents) ? this.signedToAbsoluteArray(this.extents) : this.extents;
@@ -79,6 +80,21 @@ class AnglePicker {
         }
         this.inputA = inputA;
         this.inputB = inputB;
+        if (this.inputA) {
+            this.inputA.addEventListener('change', (event) => {
+                this.eventDispatched = true;
+                this.setA(event.target.value);
+                this.eventDispatched = false;
+            });
+        }
+        if (this.inputB) {
+            this.inputB.addEventListener('change', (event) => {
+                this.eventDispatched = true;
+                this.setB(event.target.value);
+                this.eventDispatched = false;
+            });
+        }
+
         this.parent = parent;
         if (!this.parent.querySelector('svg')) {
             
@@ -279,15 +295,35 @@ class AnglePicker {
         
     }
 
+    setA(angle) {
+        this.aV = this.vectorFromAngle(angle);
+        this.setCenter([this.handleA, this.handleAHighlight], this.aV);
+        this.setRangeSpan();
+    }
+
+    setB(angle) {
+        this.bV = this.vectorFromAngle(angle);
+        this.setCenter([this.handleB, this.handleBHighlight], this.bV);
+        this.setRangeSpan();
+    }
+
+    dispatchEvent(element, event) {
+        if (!this.eventDispatched) {
+            this.eventDispatched = true;
+            element.dispatchEvent(new Event(event, {'bubbles': true, 'cancelable': true}));
+            this.eventDispatched = false;
+        }
+    }
+
     rangeUpdated(newRange, mode) {
         this.range = newRange;
         if (this.inputA && this.lastRange[0] != this.range[0]) {
             this.inputA.value = this.range[0];
-            this.inputA.dispatchEvent(new Event('change', {'bubbles': true, 'cancelable': true}));
+            this.dispatchEvent(this.inputA, 'change');
         }
         if (this.inputB && this.lastRange[1] != this.range[1]) {
             this.inputB.value = this.range[1];
-            this.inputB.dispatchEvent(new Event('change', {'bubbles': true, 'cancelable': true}));
+            this.dispatchEvent(this.inputB, 'change');
         }
         if (this.rangeUpdateHandler) {
             this.rangeUpdateHandler(newRange, mode);
@@ -368,14 +404,14 @@ class AnglePicker {
 
         if (this.inputA && this.range[0] != angle1) {
             this.inputA.value = angle1;
-            this.inputA.dispatchEvent(new Event('input', {'bubbles': true, 'cancelable': true}));
+            this.dispatchEvent(this.inputA, 'input');
             if (this.rangeMovedHandler) {
                 this.rangeMovedHandler(angle1, angle2);
             }
         }
         if (this.inputB && this.range[1] != angle2) {
             this.inputB.value = angle2;
-            this.inputB.dispatchEvent(new Event('input', {'bubbles': true, 'cancelable': true}));
+            this.dispatchEvent(this.inputB, 'input');
             if (this.rangeMovedHandler) {
                 this.rangeMovedHandler(angle1, angle2);
             }
@@ -410,6 +446,10 @@ class AnglePicker {
 
     setRangeUpdateHandler(handler) {
         this.rangeUpdateHandler = handler;
+    }
+    
+    setRangeMovedHandler(handler) {
+        this.rangeMovedHandler = handler;
     }
 
     allowed(a, b) {
